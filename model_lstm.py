@@ -140,15 +140,16 @@ class ModelLSTM(nn.Module):
 
         category_name = self.embedding_category_name(category_name)
         category_name = self.lstm_category_name(category_name)
-        category_name = category_name[:, -1, ;]
+        category_name = category_name[:, -1, :]
 
         item_description = self.embedding_item_description(item_description)
         item_description = self.lstm_item_description(item_description)
-        item_description = item_description[:, -1, ;]
+        item_description = item_description[:, -1, :]
 
         brand_name = self.embedding_brand_name(brand_name)
 
-        x = torch.cat([name, item_condition_id, category_name, brand_name, shipping, item_description], 1)
+        x = torch.cat([name, item_condition_id, category_name,
+                       brand_name, shipping, item_description], 1)
         logger.debug(x.shape)
         # x = self.dp1(x)
         # x = self.bn1(x)
@@ -164,14 +165,9 @@ class ModelLSTM(nn.Module):
 
 if __name__ == "__main__":
     data_loader = torch.utils.data.DataLoader(
-        Dataset(train_pre_path), batch_size=2048, shuffle=True)
-
-    val_data_loader = torch.utils.data.DataLoader(
-        ValDataset(train_pre_path), batch_size=500)
+        DatasetTrain(), batch_size=2048, shuffle=True)
 
     model = ModelLSTM().cuda()
-    class_weight = torch.FloatTensor([1.309028344, 0.472001959]).cuda()
-
     logger.debug(model)
     optimizer = optim.Adam(
         filter(lambda p: p.requires_grad, model.parameters()), lr=lr)
@@ -181,11 +177,23 @@ if __name__ == "__main__":
         model.train()
         train_loss_list = []
         for batch in tqdm(data_loader):
-            input1 = batch[0].cuda()
-            input2 = batch[1].cuda()
-            label = batch[2].cuda()
+            name = batch[0].cuda()
+            item_condition_id = batch[1].cuda()
+            category_name = batch[2].cuda()
+            brand_name = batch[3].cuda()
+            shipping = batch[4].cuda()
+            price = batch[5].cuda()
+            item_description = batch[6].cuda()
 
-            output = model(Variable(input1), Variable(input2))
+            output = model(
+                Variable(name),
+                Variable(item_condition_id),
+                Variable(category_name),
+                Variable(brand_name),
+                Variable(shipping),
+                Variable(price),
+                Variable(item_description),
+            )
 
             label = Variable(label)
 
